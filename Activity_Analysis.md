@@ -9,6 +9,16 @@ This file is the analysis report of [Coursera courses project](https://www.cours
 
 ### Data exploration
 
+```r
+temp = tempfile()
+download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip",temp)
+rdat = read.csv(unz(temp,"activity.csv"))
+unlink(temp)
+```
+
+```r
+str(rdat)
+```
 
 ```
 ## 'data.frame':	17568 obs. of  3 variables:
@@ -20,14 +30,35 @@ From the simply exploration, the dataset has 3 variables:  steps, date, interval
 
 ### Histogram of total steps each day
 Since no more information about the missing value, right now, the total steps are calculated with all these missing values removed.
-![](Activity_Analysis_files/figure-html/Total steps per day-1.png)<!-- -->
+
+```r
+dat.cplt = rdat[complete.cases(rdat),]
+TotalSteps = with(dat.cplt, aggregate(steps, by = list(date),sum))
+names(TotalSteps) = c("Time", "tSteps")
+
+ggplot(TotalSteps, aes(x = as.Date(Time), y = tSteps)) + geom_col() + labs(x = "Time", y = "Total Steps", title = "Total Steps on Each Day with NA Removed")
+```
+
+![](Activity_Analysis_files/figure-html/Total_steps_per_day-1.png)<!-- -->
 
 ### Mean and Median steps each day
 
+```r
+sMean = with(TotalSteps, mean(tSteps))
+sMedian = with(TotalSteps, median(tSteps))
+```
 After calculating the total steps of each day, it's easy to find the mean value is 1.0766\times 10^{4} and the median is 10765. The two statistics are quite close.
 
 ### Time series of average steps
-![](Activity_Analysis_files/figure-html/Time Series of Avg Steps-1.png)<!-- -->
+
+```r
+AvgItv = with(dat.cplt, aggregate(steps, by = list(interval), mean))
+names(AvgItv) = c("Interval", "AvgSteps")
+
+ggplot(AvgItv, aes(x = Interval, y = AvgSteps)) + geom_line(linetype = "solid") + labs(y = "Average Steps", title = "Time Series of Average Steps")
+```
+
+![](Activity_Analysis_files/figure-html/Time_Series_of_Avg_Steps-1.png)<!-- -->
 
 From the plot, it can be inferred that the individual should be quite before Interval 500 or after 2200, since its average steps are pretty low. The active period is from Interval 550 to 1800, and it reaches the peak at around Interval 800.
 
@@ -55,7 +86,30 @@ cdat[is.na(cdat$steps) & 2200<=cdat$interval, "steps"] = p5
 ```
 
 ### Histogram of total steps each day (with missing value imputed)
-![](Activity_Analysis_files/figure-html/Total Steps without NA-1.png)<!-- -->
+
+```r
+cTotalSteps = with(cdat, aggregate(steps, by = list(date), sum))
+names(cTotalSteps) = c("Time", "tSteps")
+
+ggplot(cTotalSteps, aes(x = as.Date(Time), y = tSteps)) + geom_col() + labs(x = "Time", y = "Total Steps", title = "Total Steps on Each Day with NA Imputed")
+```
+
+![](Activity_Analysis_files/figure-html/Total_Steps_without_NA-1.png)<!-- -->
 
 ### Panel plots comparing weekdays and weekends
-![](Activity_Analysis_files/figure-html/Panel Plots-1.png)<!-- -->
+
+```r
+# label date
+cdat$weekday = wday(cdat$date, label = F)
+cdat[cdat$weekday %in% c(2:6),"weekday"] = "weekday"
+cdat[cdat$weekday %in% c(1,7),"weekday"] = "weekend"
+
+# prepare dataset
+wdat = with(cdat, aggregate(steps, by = list(interval, weekday), mean))
+names(wdat) = c("interval", "weekday", "steps")
+
+# draw plots
+ggplot(wdat, aes(x = interval, y = steps)) + geom_line() + facet_grid(weekday ~.) + labs(x = "Interval", y = "Average Steps", title = "Panel Plots Comparing Weekdays and Weekends")
+```
+
+![](Activity_Analysis_files/figure-html/Panel_Plots-1.png)<!-- -->

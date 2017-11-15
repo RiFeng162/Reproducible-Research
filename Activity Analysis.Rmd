@@ -8,7 +8,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(lubridate)
 ```
@@ -23,14 +23,14 @@ download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.z
 rdat = read.csv(unz(temp,"activity.csv"))
 unlink(temp)
 ```
-```{r Exploration of Raw Data, echo=FALSE}
+```{r Exploration_of_Raw_Data}
 str(rdat)
 ```
 From the simply exploration, the dataset has 3 variables:  `r names(rdat)` with `r nrow(rdat)` observations.
 
 ### Histogram of total steps each day
 Since no more information about the missing value, right now, the total steps are calculated with all these missing values removed.
-```{r Total steps per day, warning=FALSE}
+```{r Total_steps_per_day, warning=FALSE}
 dat.cplt = rdat[complete.cases(rdat),]
 TotalSteps = with(dat.cplt, aggregate(steps, by = list(date),sum))
 names(TotalSteps) = c("Time", "tSteps")
@@ -46,7 +46,7 @@ sMedian = with(TotalSteps, median(tSteps))
 After calculating the total steps of each day, it's easy to find the mean value is `r round(sMean)` and the median is `r sMedian`. The two statistics are quite close.
 
 ### Time series of average steps
-```{r Time Series of Avg Steps}
+```{r Time_Series_of_Avg_Steps}
 AvgItv = with(dat.cplt, aggregate(steps, by = list(interval), mean))
 names(AvgItv) = c("Interval", "AvgSteps")
 
@@ -62,7 +62,7 @@ The Interval with average max steps is `r AvgItv[which.max(AvgItv$AvgSteps), "In
 It's assumed that the individual activities in each day are steady. Hence, it's reasonable to impute missing values according to the Average Interval Steps.  
 From the Time Series Plot, it can be found that in different time period, the average steps change dramatically. So it's not a good idea to use a simple value to replace all missing values. It's better to refer the average steps at specific interval.   
 My strategy is to split total interval into 5 pieces according to the Time Series Plot, which are [0,500), [500,780), [780,880), [880,2200),[2200,2355]. In each piece, the missing values are replaced by the average steps of the "piece period". 
-```{r Imputing Missing Values, echo = TRUE}
+```{r Imputing_Missing_Values, echo = TRUE}
 # Code for strategy
 p1 = mean(AvgItv[AvgItv$Interval<500,"AvgSteps"])
 p2 = mean(AvgItv[AvgItv$Interval>=500 & AvgItv$Interval<780,"AvgSteps"])
@@ -78,7 +78,7 @@ cdat[is.na(cdat$steps) & 2200<=cdat$interval, "steps"] = p5
 ```
 
 ### Histogram of total steps each day (with missing value imputed)
-```{r Total Steps without NA}
+```{r Total_Steps_without_NA}
 cTotalSteps = with(cdat, aggregate(steps, by = list(date), sum))
 names(cTotalSteps) = c("Time", "tSteps")
 
@@ -86,7 +86,7 @@ ggplot(cTotalSteps, aes(x = as.Date(Time), y = tSteps)) + geom_col() + labs(x = 
 ```
 
 ### Panel plots comparing weekdays and weekends
-```{r Panel Plots}
+```{r Panel_Plots}
 # label date
 cdat$weekday = wday(cdat$date, label = F)
 cdat[cdat$weekday %in% c(2:6),"weekday"] = "weekday"
